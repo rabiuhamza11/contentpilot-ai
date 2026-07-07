@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContentPilot — AI Content Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117; --panel:#171a23; --panel2:#1e2230; --border:#2a2f3d;
+  --text:#e8eaed; --muted:#9099a8; --blue:#4d7cfe; --purple:#8b5cf6;
+  --pink:#ec4899; --green:#22c55e; --red:#ef4444; --orange:#f59e0b;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+body{background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+.sidebar{width:230px;background:var(--panel);border-right:1px solid var(--border);padding:20px 12px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 8px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.brand .icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700}
+.brand .name{font-weight:700;font-size:15px;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand .sub{font-size:10px;color:var(--muted);letter-spacing:.5px}
+.section-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:14px 10px 6px}
+.nav-item{display:flex;align-items:center;justify-content:space-between;padding:10px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px;margin-bottom:2px;transition:.15s}
+.nav-item:hover{background:var(--panel2);color:var(--text)}
+.nav-item.active{background:var(--blue);color:#fff}
+.nav-item .left{display:flex;align-items:center;gap:10px}
+.badge{background:var(--red);color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.badge.warn{background:var(--orange)}
+.status-dot{display:flex;align-items:center;gap:8px;padding:10px;font-size:13px;color:var(--muted);margin-top:20px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.main{flex:1;display:flex;flex-direction:column;overflow-y:auto;height:100vh}
+.topbar{padding:24px 32px 16px;border-bottom:1px solid var(--border)}
+.topbar h1{font-size:24px;margin-bottom:4px}
+.topbar p{color:var(--muted);font-size:13px}
+.content{padding:24px 32px}
+.page{display:none}
+.page.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;border-top:3px solid var(--blue)}
+.stat-card.pink{border-top-color:var(--pink)}
+.stat-card.green{border-top-color:var(--green)}
+.stat-card.red{border-top-color:var(--red)}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.stat-value{font-size:28px;font-weight:700;margin-bottom:4px}
+.stat-change{font-size:12px;color:var(--green)}
+.stat-change.down{color:var(--red)}
+.panels-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:24px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px}
+.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.panel-header h3{font-size:15px}
+.tabs{display:flex;gap:4px;background:var(--panel2);border-radius:8px;padding:3px}
+.tab-btn{padding:5px 12px;font-size:12px;border-radius:6px;cursor:pointer;color:var(--muted);border:none;background:transparent}
+.tab-btn.active{background:var(--blue);color:#fff}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;padding:8px;border-bottom:1px solid var(--border)}
+td{padding:10px 8px;font-size:13px;border-bottom:1px solid var(--border)}
+.pill{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.pill.live{background:rgba(34,197,94,.15);color:var(--green)}
+.pill.review{background:rgba(245,158,11,.15);color:var(--orange)}
+.pill.queued{background:rgba(77,124,254,.15);color:var(--blue)}
+.btn{background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.btn:hover{opacity:.9}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card-simple{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+.card-simple h4{font-size:14px;margin-bottom:8px}
+.card-simple p{font-size:12px;color:var(--muted)}
+input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;margin-bottom:12px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+.acct-row{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--border)}
+.acct-info{display:flex;align-items:center;gap:12px}
+.acct-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.acct-health{font-size:11px;color:var(--green)}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">
+    <div class="icon">⚡</div>
+    <div><div class="name">ContentPilot</div><div class="sub">AI CONTENT AGENT</div></div>
+  </div>
+  <div class="section-label">Overview</div>
+  <div class="nav-item active" data-page="dashboard"><span class="left">📊 Dashboard</span></div>
+  <div class="section-label">Production</div>
+  <div class="nav-item" data-page="trend"><span class="left">🔥 Trend Analysis</span><span class="badge">12</span></div>
+  <div class="nav-item" data-page="video"><span class="left">🎬 Video Generation</span></div>
+  <div class="nav-item" data-page="optimization"><span class="left">⚡ Optimization</span></div>
+  <div class="section-label">Management</div>
+  <div class="nav-item" data-page="accounts"><span class="left">👥 Accounts</span></div>
+  <div class="nav-item" data-page="calendar"><span class="left">📅 Content Calendar</span></div>
+  <div class="nav-item" data-page="queue"><span class="left">📋 Post Queue</span><span class="badge warn">5</span></div>
+  <div class="section-label">System</div>
+  <div class="nav-item" data-page="safety"><span class="left">🛡️ Safety & Compliance</span></div>
+  <div class="nav-item" data-page="api"><span class="left">🔌 API & Webhooks</span></div>
+  <div class="status-dot"><span class="dot"></span> Agent Active</div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <p id="page-sub">Overview of all content operations</p>
+  </div>
+  <div class="content">
+
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Videos Published Today</div><div class="stat-value">8</div><div class="stat-change">↑ 33% vs yesterday</div></div>
+        <div class="stat-card pink"><div class="stat-label">Total Views (24h)</div><div class="stat-value">142.5K</div><div class="stat-change">↑ 18% vs avg</div></div>
+        <div class="stat-card green"><div class="stat-label">Active Accounts</div><div class="stat-value">6</div><div class="stat-change">All healthy</div></div>
+        <div class="stat-card red"><div class="stat-label">In Queue</div><div class="stat-value">14</div><div class="stat-change down">↓ 2 pending review</div></div>
+      </div>
+      <div class="panels-grid">
+        <div class="panel">
+          <div class="panel-header"><h3>Performance Overview</h3><div class="tabs"><button class="tab-btn active">7D</button><button class="tab-btn">30D</button><button class="tab-btn">90D</button></div></div>
+          <canvas id="perfChart" height="220"></canvas>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3>Platform Distribution</h3></div>
+          <canvas id="distChart" height="220"></canvas>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><h3>Recent Activity</h3></div>
+        <table>
+          <tr><th>Content</th><th>Platform</th><th>Status</th><th>Views</th></tr>
+          <tr><td>5 Morning Habits That Changed My Life</td><td>TikTok</td><td><span class="pill live">Live</span></td><td>28.4K</td></tr>
+          <tr><td>How AI Is Changing Content Creation</td><td>YouTube Shorts</td><td><span class="pill live">Live</span></td><td>19.1K</td></tr>
+          <tr><td>Budget Travel Tips for 2026</td><td>Instagram Reels</td><td><span class="pill review">In Review</span></td><td>—</td></tr>
+          <tr><td>Quick Recipe: 10-Min Dinner</td><td>TikTok</td><td><span class="pill queued">Queued</span></td><td>—</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="page" id="page-trend">
+      <div class="panel">
+        <div class="panel-header"><h3>Trending Topics (12 new)</h3><button class="btn">Refresh Trends</button></div>
+        <table>
+          <tr><th>Topic</th><th>Platform</th><th>Growth</th><th>Score</th></tr>
+          <tr><td>#MorningRoutine2026</td><td>TikTok</td><td style="color:var(--green)">+240%</td><td>94</td></tr>
+          <tr><td>AI productivity hacks</td><td>YouTube</td><td style="color:var(--green)">+180%</td><td>89</td></tr>
+          <tr><td>Budget travel Europe</td><td>Instagram</td><td style="color:var(--green)">+156%</td><td>81</td></tr>
+          <tr><td>Home office setup 2026</td><td>TikTok</td><td style="color:var(--green)">+132%</td><td>77</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="page" id="page-video">
+      <div class="grid-2">
+        <div class="card-simple">
+          <h4>Generate New Video</h4>
+          <label>Topic / Script Idea</label>
+          <textarea rows="3" placeholder="e.g. 5 morning habits for productivity"></textarea>
+          <label>Platform</label>
+          <select><option>TikTok</option><option>YouTube Shorts</option><option>Instagram Reels</option></select>
+          <label>Voice Style</label>
+          <select><option>Energetic</option><option>Calm</option><option>Professional</option></select>
+          <button class="btn">Generate Video</button>
+        </div>
+        <div class="card-simple">
+          <h4>Recent Generations</h4>
+          <p style="margin-bottom:10px">✅ 5 Morning Habits — Ready</p>
+          <p style="margin-bottom:10px">✅ AI Content Trends — Ready</p>
+          <p style="margin-bottom:10px">⏳ Budget Travel Tips — Rendering (68%)</p>
+          <p>⏳ Quick Recipe Video — Queued</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-optimization">
+      <div class="grid-3">
+        <div class="card-simple"><h4>🎯 Best Posting Time</h4><p>TikTok: 7:00–9:00 PM WAT sees 34% higher engagement</p></div>
+        <div class="card-simple"><h4>📝 Caption A/B Test</h4><p>Question-style captions outperform statements by 21%</p></div>
+        <div class="card-simple"><h4>🏷️ Hashtag Suggestions</h4><p>#productivity #morningroutine #2026goals trending up</p></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-accounts">
+      <div class="panel">
+        <div class="panel-header"><h3>Connected Accounts (6)</h3><button class="btn">+ Add Account</button></div>
+        <div class="acct-row"><div class="acct-info"><div class="acct-avatar">TT</div><div><div>@harzco_official</div><div class="acct-health">TikTok · Healthy</div></div></div><span class="pill live">Active</span></div>
+        <div class="acct-row"><div class="acct-info"><div class="acct-avatar">YT</div><div><div>Harz Media</div><div class="acct-health">YouTube · Healthy</div></div></div><span class="pill live">Active</span></div>
+        <div class="acct-row"><div class="acct-info"><div class="acct-avatar">IG</div><div><div>@harz.creates</div><div class="acct-health">Instagram · Healthy</div></div></div><span class="pill live">Active</span></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-calendar">
+      <div class="panel"><div class="panel-header"><h3>Content Calendar — This Week</h3></div>
+      <p style="color:var(--muted);font-size:13px">14 posts scheduled across TikTok, YouTube Shorts, and Instagram Reels for this week. Next post: today at 7:00 PM WAT.</p></div>
+    </div>
+
+    <div class="page" id="page-queue">
+      <div class="panel">
+        <div class="panel-header"><h3>Post Queue (5 pending)</h3></div>
+        <table>
+          <tr><th>Content</th><th>Platform</th><th>Scheduled</th><th>Status</th></tr>
+          <tr><td>Budget Travel Tips</td><td>Instagram Reels</td><td>Today, 7:00 PM</td><td><span class="pill review">In Review</span></td></tr>
+          <tr><td>Quick Recipe Video</td><td>TikTok</td><td>Today, 9:00 PM</td><td><span class="pill queued">Queued</span></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="page" id="page-safety">
+      <div class="card-simple"><h4>🛡️ Compliance Status: All Clear</h4><p>All published content passed automated safety, copyright, and platform-policy checks in the last 24 hours.</p></div>
+    </div>
+
+    <div class="page" id="page-api">
+      <div class="panel">
+        <div class="panel-header"><h3>API & Webhooks</h3></div>
+        <label>Your API Key</label>
+        <input value="cp_live_sk_••••••••••••••••" readonly>
+        <label>Webhook URL</label>
+        <input value="https://your-app.com/webhooks/contentpilot" placeholder="https://your-app.com/webhooks/contentpilot">
+        <button class="btn">Save Webhook</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const pageTitles = {
+  dashboard: ['Dashboard','Overview of all content operations'],
+  trend: ['Trend Analysis','Discover what\\'s trending across platforms'],
+  video: ['Video Generation','Create AI-generated short-form videos'],
+  optimization: ['Optimization','AI-driven posting and engagement recommendations'],
+  accounts: ['Accounts','Manage your connected social accounts'],
+  calendar: ['Content Calendar','Plan and schedule your content pipeline'],
+  queue: ['Post Queue','Review and approve content before publishing'],
+  safety: ['Safety & Compliance','Automated content and policy checks'],
+  api: ['API & Webhooks','Integrate ContentPilot with your own systems'],
+};
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    const page = item.dataset.page;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('page-title').textContent = pageTitles[page][0];
+    document.getElementById('page-sub').textContent = pageTitles[page][1];
+  });
+});
+
+new Chart(document.getElementById('perfChart'), {
+  type: 'line',
+  data: {
+    labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    datasets: [
+      {label:'Views (K)', data:[42,58,72,52,88,128,142], borderColor:'#4d7cfe', backgroundColor:'rgba(77,124,254,.1)', tension:.4, fill:true},
+      {label:'Engagement (K)', data:[10,14,16,9,17,20,22], borderColor:'#8b5cf6', backgroundColor:'rgba(139,92,246,.1)', tension:.4, fill:true}
+    ]
+  },
+  options: {responsive:true, plugins:{legend:{labels:{color:'#9099a8'}}}, scales:{x:{ticks:{color:'#9099a8'},grid:{color:'#2a2f3d'}},y:{ticks:{color:'#9099a8'},grid:{color:'#2a2f3d'}}}}
+});
+
+new Chart(document.getElementById('distChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['TikTok','YouTube Shorts','Instagram Reels'],
+    datasets: [{data:[45,35,20], backgroundColor:['#ec4899','#ef4444','#f59e0b'], borderWidth:0}]
+  },
+  options: {responsive:true, plugins:{legend:{position:'bottom',labels:{color:'#9099a8'}}}}
+});
+</script>
+
+</body>
+</html>
