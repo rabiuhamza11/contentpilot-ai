@@ -92,6 +92,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
   <div class="section-label">System</div>
   <div class="nav-item" data-page="safety"><span class="left">🛡️ Safety & Compliance</span></div>
   <div class="nav-item" data-page="api"><span class="left">🔌 API & Webhooks</span></div>
+  <div class="nav-item" data-page="billing"><span class="left">💳 Billing & Plans</span></div>
   <div class="status-dot"><span class="dot"></span> Agent Active</div>
 </div>
 
@@ -214,6 +215,40 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
       </div>
     </div>
 
+    <div class="page" id="page-billing">
+      <div class="grid-3">
+        <div class="card-simple" style="border-top:3px solid var(--blue)">
+          <h4>Starter</h4>
+          <div style="font-size:28px;font-weight:700;margin:10px 0">$15<span style="font-size:13px;color:var(--muted)">/mo</span></div>
+          <p style="margin-bottom:14px">10 videos/mo · 2 platforms · Basic analytics</p>
+          <button class="btn" style="width:100%;margin-bottom:8px" onclick="startCheckout('Starter','stripe')">Pay with Stripe</button>
+          <button class="btn" style="width:100%;background:#0BA84A" onclick="startCheckout('Starter','paystack')">Pay with Paystack</button>
+        </div>
+        <div class="card-simple" style="border-top:3px solid var(--purple)">
+          <h4>Pro</h4>
+          <div style="font-size:28px;font-weight:700;margin:10px 0">$39<span style="font-size:13px;color:var(--muted)">/mo</span></div>
+          <p style="margin-bottom:14px">50 videos/mo · All platforms · Trend analysis · Optimization</p>
+          <button class="btn" style="width:100%;margin-bottom:8px" onclick="startCheckout('Pro','stripe')">Pay with Stripe</button>
+          <button class="btn" style="width:100%;background:#0BA84A" onclick="startCheckout('Pro','paystack')">Pay with Paystack</button>
+        </div>
+        <div class="card-simple" style="border-top:3px solid var(--pink)">
+          <h4>Agency</h4>
+          <div style="font-size:28px;font-weight:700;margin:10px 0">$99<span style="font-size:13px;color:var(--muted)">/mo</span></div>
+          <p style="margin-bottom:14px">Unlimited videos · API access · Priority support</p>
+          <button class="btn" style="width:100%;margin-bottom:8px" onclick="startCheckout('Agency','stripe')">Pay with Stripe</button>
+          <button class="btn" style="width:100%;background:#0BA84A" onclick="startCheckout('Agency','paystack')">Pay with Paystack</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-header"><h3>Your Details</h3></div>
+        <label>Email</label>
+        <input id="billing-email" type="email" placeholder="you@example.com">
+        <label>Name</label>
+        <input id="billing-name" type="text" placeholder="Your name">
+        <p style="color:var(--muted);font-size:12px">Fill this in before clicking a plan's payment button above.</p>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -228,6 +263,7 @@ const pageTitles = {
   queue: ['Post Queue','Review and approve content before publishing'],
   safety: ['Safety & Compliance','Automated content and policy checks'],
   api: ['API & Webhooks','Integrate ContentPilot with your own systems'],
+  billing: ['Billing & Plans','Choose a plan and subscribe with Stripe or Paystack'],
 };
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
@@ -261,6 +297,28 @@ new Chart(document.getElementById('distChart'), {
   },
   options: {responsive:true, plugins:{legend:{position:'bottom',labels:{color:'#9099a8'}}}}
 });
+
+const CHECKOUT_ENDPOINT = "https://superagent-2286fb2f.base44.app/functions/contentPilotCheckout";
+async function startCheckout(plan, provider) {
+  const email = document.getElementById('billing-email').value.trim();
+  const name = document.getElementById('billing-name').value.trim();
+  if (!email) { alert('Please enter your email first.'); return; }
+  try {
+    const resp = await fetch(CHECKOUT_ENDPOINT, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ plan, provider, email, name })
+    });
+    const data = await resp.json();
+    if (data.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+    } else {
+      alert('Checkout error: ' + (data.error || 'unknown'));
+    }
+  } catch (e) {
+    alert('Checkout failed: ' + e.message);
+  }
+}
 </script>
 
 </body>
